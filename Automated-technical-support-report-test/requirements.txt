@@ -3,4 +3,5 @@ requests
 groq
 google-generativeai
 cerebras-cloud-sdk
-pymssql
+python-tds
+
