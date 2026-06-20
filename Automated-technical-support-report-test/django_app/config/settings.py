@@ -10,8 +10,10 @@ ALLOWED_HOSTS = ['*']
 
 # ---------------- APPS ----------------
 INSTALLED_APPS = [
-    # شيلنا django.contrib.admin و django.contrib.auth و django.contrib.contenttypes
-    # و django.contrib.sessions لأنهم محتاجين SQLite/ORM — بنستخدم MSSQL مباشرة
+    # شيلنا django.contrib.admin و django.contrib.sessions لأنهم محتاجين SQLite/ORM — بنستخدم MSSQL مباشرة
+    # auth و contenttypes لازم يفضلوا موجودين لأن apps.users.models بيعمل import من django.contrib.auth.models
+    'django.contrib.contenttypes',
+    'django.contrib.auth',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
