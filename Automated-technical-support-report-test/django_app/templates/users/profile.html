@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block title %}Profile{% endblock %}
+{% block nav_profile %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+  .profile-grid { display:grid; grid-template-columns:320px 1fr; gap:20px; align-items:start; }
+  .profile-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; padding:28px; text-align:center;
+  }
+  .profile-card .avatar {
+    width:80px; height:80px; border-radius:50%;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:flex; align-items:center; justify-content:center;
+    font-size:32px; font-weight:800; margin:0 auto 16px;
+  }
+  .profile-card .pname { font-size:18px; font-weight:800; }
+  .profile-card .prole {
+    display:inline-block; margin-top:8px; padding:4px 14px;
+    border-radius:20px; font-size:12px; font-weight:700;
+    background:rgba(79,110,247,.15); color:var(--accent);
+  }
+  .profile-card .pphone { color:var(--muted); font-size:13px; margin-top:8px; }
+  .form-section { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:24px; margin-bottom:16px; }
+  .form-section .section-title { margin-bottom:20px; }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .field { margin-bottom:16px; }
+  .field label { display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:7px; }
+  .field input {
+    width:100%; padding:11px 14px;
+    background:rgba(255,255,255,.04); border:1px solid var(--border);
+    border-radius:9px; color:var(--text); font-family:'Cairo',sans-serif;
+    font-size:14px; outline:none; transition:border-color .2s;
+  }
+  .field input:focus { border-color:var(--accent); }
+  @media(max-width:900px){ .profile-grid { grid-template-columns:1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-title"><i class="fa-solid fa-circle-user"></i> الملف الشخصي</div>
+
+<div class="profile-grid">
+  <!-- Left: Profile Card -->
+  <div class="profile-card">
+    <div class="avatar">{{ request.user.first_name|first|default:request.user.username|first }}</div>
+    <div class="pname">{{ request.user.first_name }} {{ request.user.last_name }}</div>
+    <div class="prole">{{ role }}</div>
+    <div class="pphone"><i class="fa-solid fa-phone"></i> {{ request.user.profile.phone_number }}</div>
+  </div>
+
+  <!-- Right: Forms -->
+  <div>
+    <!-- تغيير الإيميل -->
+    <div class="form-section">
+      <div class="section-title">تغيير البريد الإلكتروني</div>
+      <form method="post" action="{% url 'profile' %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="change_email">
+        <div class="field">
+          <label>البريد الحالي</label>
+          <input type="email" value="{{ request.user.email }}" disabled style="opacity:.5">
+        </div>
+        <div class="field">
+          <label>البريد الجديد</label>
+          <input type="email" name="new_email" placeholder="example@email.com">
+        </div>
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-envelope"></i> حفظ</button>
+      </form>
+    </div>
+
+    <!-- تغيير كلمة المرور -->
+    <div class="form-section">
+      <div class="section-title">تغيير كلمة المرور</div>
+      <form method="post" action="{% url 'profile' %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="change_password">
+        <div class="field">
+          <label>كلمة المرور الحالية</label>
+          <input type="password" name="old_password" placeholder="••••••••">
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>الجديدة</label>
+            <input type="password" name="new_password" placeholder="••••••••">
+          </div>
+          <div class="field">
+            <label>تأكيد</label>
+            <input type="password" name="confirm_password" placeholder="••••••••">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-lock"></i> تغيير</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

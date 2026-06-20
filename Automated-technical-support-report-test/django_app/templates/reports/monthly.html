@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Monthly Report{% endblock %}
+
+{% block content %}
+<div class="page-title"><i class="fa-solid fa-calendar-days"></i> التقرير الشهري</div>
+
+<form method="get">
+  <div class="filters-bar">
+    <select class="select-input" name="month">
+      {% for num, name in months %}
+      <option value="{{ num }}" {% if num == selected_month %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+    <select class="select-input" name="year">
+      {% for y in years %}
+      <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-search"></i> عرض</button>
+    <a href="{% url 'reports_list' %}" class="btn btn-ghost">
+      <i class="fa-solid fa-list"></i> كل التقارير
+    </a>
+  </div>
+</form>
+
+<div class="card">
+  <div class="section-title">نتائج الشهر {{ selected_month }} / {{ selected_year }}</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th data-ar="الأيجنت" data-en="Agent">الأيجنت</th>
+          <th data-ar="الإجمالي" data-en="Total">الإجمالي</th>
+          <th data-ar="تم الحل" data-en="Resolved">تم الحل</th>
+          <th data-ar="لم يتم الحل" data-en="Unresolved">لم يتم الحل</th>
+          <th data-ar="غير محدد" data-en="Unspecified">غير محدد</th>
+          <th data-ar="نسبة الحل" data-en="Resolution Rate">نسبة الحل</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in data %}
+        <tr>
+          <td style="font-weight:600">{{ row.agent_name }}</td>
+          <td><span class="badge badge-blue">{{ row.total }}</span></td>
+          <td><span class="badge badge-green">{{ row.resolved }}</span></td>
+          <td><span class="badge badge-red">{{ row.unresolved }}</span></td>
+          <td><span class="badge badge-purple">{{ row.unspecified|default:0 }}</span></td>
+          <td>
+            {% if row.total %}
+              {% widthratio row.resolved row.total 100 %}%
+            {% else %}
+              —
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px">لا توجد بيانات لهذا الشهر</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

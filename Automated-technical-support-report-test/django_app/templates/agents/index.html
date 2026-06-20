@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+{% block title %}Customer Support{% endblock %}
+
+{% block extra_css %}
+<style>
+    .agents-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 18px;
+    }
+
+    .agent-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 22px;
+        transition: border-color .2s, transform .2s;
+        cursor: pointer;
+        text-decoration: none;
+        display: block;
+        color: inherit;
+    }
+
+    .agent-card:hover {
+        border-color: var(--accent);
+        transform: translateY(-2px);
+    }
+
+    .agent-card .top {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+
+    .agent-card .avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: 800;
+        flex-shrink: 0;
+    }
+
+    .agent-card .name {
+        font-size: 17px;
+        font-weight: 700;
+    }
+
+    .agent-card .id {
+        font-size: 14px;
+        color: var(--muted);
+        margin-top: 2px;
+    }
+
+    .agent-card .stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+    }
+
+    .agent-card .stat-item {
+        text-align: center;
+    }
+
+    .agent-card .stat-item .s-val {
+        font-size: 23px;
+        font-weight: 800;
+    }
+
+    .agent-card .stat-item .s-lbl {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 2px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--muted);
+        font-size: 17px;
+    }
+
+    .empty-state i {
+        font-size: 54px;
+        margin-bottom: 16px;
+        display: block;
+        opacity: .4;
+    }
+
+    /* ── Smart Filter ── */
+    .smart-filter-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .filter-mode-toggle {
+        display: flex;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .filter-mode-toggle button {
+        background: none;
+        border: none;
+        color: var(--muted);
+        font-size: 14px;
+        font-family: 'Cairo', sans-serif;
+        padding: 5px 12px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background .15s, color .15s;
+    }
+
+    .filter-mode-toggle button.active {
+        background: var(--accent);
+        color: #fff;
+    }
+
+    .filter-inputs {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .filter-inputs label {
+        font-size: 14px;
+        color: var(--muted);
+        white-space: nowrap;
+    }
+
+    .filter-inputs input[type="date"],
+    .filter-inputs input[type="month"] {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        font-size: 14px;
+        padding: 4px 8px;
+        height: 30px;
+        font-family: 'Cairo', sans-serif;
+    }
+
+    .filter-inputs input:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+
+    .btn-apply-filter {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 5px 14px;
+        font-size: 14px;
+        font-family: 'Cairo', sans-serif;
+        cursor: pointer;
+        white-space: nowrap;
+        height: 30px;
+    }
+
+    .btn-apply-filter:hover {
+        background: #3b5fe8;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-title"><i class="fa-solid fa-headset"></i> <span data-ar="دعم العملاء" data-en="Customer Support">دعم
+        العملاء</span></div>
+
+<!-- Month banner + smart filter -->
+<div class="month-banner"
+    style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+    <span><i class="fa-solid fa-calendar-check"></i> <span data-ar="البيانات المعروضة لـ"
+            data-en="Showing data for">البيانات المعروضة لـ</span> <strong>{{ month_label }}</strong></span>
+
+    <div class="smart-filter-wrap">
+        <div class="filter-mode-toggle">
+            <button type="button" id="btnModeMonthYear" onclick="switchFilterMode('monthyear')"><span
+                    data-ar="شهر / سنة" data-en="Month / Year">شهر / سنة</span></button>
+            <button type="button" id="btnModeExact" onclick="switchFilterMode('exact')"><span data-ar="تاريخ محدد"
+                    data-en="Exact Date">تاريخ محدد</span></button>
+        </div>
+
+        <!-- Mode: شهر وسنة -->
+        <form method="get" id="formMonthYear" class="filter-inputs">
+            <input type="hidden" name="filter_mode" value="monthyear">
+            {% if search %}<input type="hidden" name="search" value="{{ search }}">{% endif %}
+            <label data-ar="الشهر" data-en="Month">الشهر</label>
+            <input type="month" name="month_year" id="inputMonthYear" value="{{ filter_month_year|default:'' }}">
+            <button type="submit" class="btn-apply-filter"><i class="fa-solid fa-filter"></i> <span data-ar="تطبيق"
+                    data-en="Apply">تطبيق</span></button>
+        </form>
+
+        <!-- Mode: تاريخ محدد -->
+        <form method="get" id="formExact" class="filter-inputs" style="display:none;">
+            <input type="hidden" name="filter_mode" value="exact">
+            {% if search %}<input type="hidden" name="search" value="{{ search }}">{% endif %}
+            <label data-ar="من" data-en="From">من</label>
+            <input type="date" name="from" value="{{ date_from }}">
+            <label data-ar="إلى" data-en="To">إلى</label>
+            <input type="date" name="to" value="{{ date_to }}">
+            <button type="submit" class="btn-apply-filter"><i class="fa-solid fa-filter"></i> <span data-ar="تطبيق"
+                    data-en="Apply">تطبيق</span></button>
+        </form>
+    </div>
+</div>
+
+<!-- Search bar -->
+<div class="filters-bar" style="margin-bottom:16px;">
+    <form method="get" style="display:contents;">
+        <input type="hidden" name="filter_mode" value="{{ filter_mode }}">
+        <input type="hidden" name="month_year" value="{{ filter_month_year }}">
+        {% if filter_mode == 'exact' %}
+        <input type="hidden" name="from" value="{{ date_from }}">
+        <input type="hidden" name="to" value="{{ date_to }}">
+        {% endif %}
+        <input class="search-input" type="text" name="search" placeholder="ابحث عن موظف الدعم..."
+            data-ar-placeholder="ابحث عن موظف الدعم..." data-en-placeholder="Search customer support..." value="{{ search }}">
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-magnifying-glass"></i> <span data-ar="بحث"
+                data-en="Search">بحث</span></button>
+        <a href="{% url 'agents_list' %}" class="btn btn-ghost"><i class="fa-solid fa-xmark"></i> <span data-ar="مسح"
+                data-en="Clear">مسح</span></a>
+    </form>
+</div>
+
+{% if agents %}
+<div class="agents-grid">
+    {% for agent in agents %}
+    <a href="{% url 'agent_detail' agent.agent_id %}?filter_mode={{ filter_mode }}&month_year={{ filter_month_year }}&from={{ date_from }}&to={{ date_to }}"
+        class="agent-card">
+        <div class="top">
+            <div class="avatar">{{ agent.agent_name|first }}</div>
+            <div>
+                <div class="name">{{ agent.agent_name }}</div>
+                <div class="id"># {{ agent.agent_id }}</div>
+            </div>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <div class="s-val">{{ agent.total }}</div>
+                <div class="s-lbl" data-ar="الكل" data-en="Total">الكل</div>
+            </div>
+            <div class="stat-item">
+                <div class="s-val" style="color:var(--green)">{{ agent.resolved }}</div>
+                <div class="s-lbl" data-ar="محلول" data-en="Resolved">محلول</div>
+            </div>
+            <div class="stat-item">
+                <div class="s-val" style="color:var(--red)">{{ agent.unresolved }}</div>
+                <div class="s-lbl" data-ar="غير محلول" data-en="Unresolved">غير محلول</div>
+            </div>
+            <div class="stat-item">
+                <div class="s-val" style="color:var(--purple)">{{ agent.unspecified|default:0 }}</div>
+                <div class="s-lbl" data-ar="غير محدد" data-en="Unspecified">غير محدد</div>
+            </div>
+        </div>
+        {% if agent.avg_resolution_minutes %}
+        <div
+            style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:11px;color:var(--muted)" data-ar="متوسط وقت الحل" data-en="Avg. Resolution">متوسط وقت
+                الحل</span>
+            <span style="font-size:14px;font-weight:800;color:var(--blue)">{{ agent.avg_resolution_minutes }} <span
+                    data-ar="د" data-en="min">د</span></span>
+        </div>
+        {% endif %}
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);text-align:center;font-size:11px;color:var(--accent);font-weight:600;letter-spacing:.3px;">
+            <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:10px;margin-left:4px;"></i>
+            <span data-ar="اضغط لعرض التفاصيل" data-en="Click to view details">اضغط لعرض التفاصيل</span>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <i class="fa-solid fa-headset"></i>
+    <span data-ar="لا توجد نتائج" data-en="No results found">لا توجد نتائج</span>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function switchFilterMode(mode) {
+        var isMY = mode === 'monthyear';
+        document.getElementById('formMonthYear').style.display = isMY ? 'flex' : 'none';
+        document.getElementById('formExact').style.display = isMY ? 'none' : 'flex';
+        document.getElementById('btnModeMonthYear').classList.toggle('active', isMY);
+        document.getElementById('btnModeExact').classList.toggle('active', !isMY);
+    }
+    (function () {
+        var mode = new URLSearchParams(window.location.search).get('filter_mode') || 'monthyear';
+        switchFilterMode(mode);
+    })();
+
+    document.querySelector('input[name="search"]').addEventListener('input', function () {
+        var val = this.value.toLowerCase();
+        document.querySelectorAll('.agent-card').forEach(function (card) {
+            var name = card.querySelector('.name').textContent.toLowerCase();
+            card.style.display = name.includes(val) ? 'block' : 'none';
+        });
+    });
+</script>
+{% endblock %}

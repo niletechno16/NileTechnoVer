@@ -1,0 +1,504 @@
+{% extends 'base.html' %}
+{% block title %}Reports{% endblock %}
+
+{% block extra_css %}
+<style>
+  .summary-cell {
+    max-width: 260px;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .summary-wrap {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .summary-text {
+    flex: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    transition: all 0.25s ease;
+  }
+
+  .summary-text.expanded {
+    display: block;
+    overflow: visible;
+  }
+
+  .summary-toggle {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 12px;
+    transition: color 0.15s, background 0.15s;
+    margin-top: 1px;
+  }
+
+  .summary-toggle:hover {
+    color: var(--accent);
+    background: var(--surface2);
+  }
+
+  .summary-toggle i {
+    transition: transform 0.25s ease;
+  }
+
+  .summary-toggle.open i {
+    transform: rotate(180deg);
+  }
+
+  /* ── Classification cell (same expand logic as summary) ── */
+  .classification-cell {
+    max-width: 220px;
+  }
+
+  .classification-wrap {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .classification-text {
+    flex: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    transition: all 0.25s ease;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: break-word;
+    border-radius: 20px;
+    padding: 3px 9px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .classification-text.expanded {
+    display: block;
+    overflow: visible;
+    -webkit-line-clamp: unset;
+  }
+
+  .classification-toggle {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 12px;
+    transition: color 0.15s, background 0.15s;
+    margin-top: 1px;
+    display: none; /* hidden until JS detects overflow */
+  }
+
+  .classification-toggle:hover {
+    color: var(--accent);
+    background: var(--surface2);
+  }
+
+  .classification-toggle i {
+    transition: transform 0.25s ease;
+  }
+
+  .classification-toggle.open i {
+    transform: rotate(180deg);
+  }
+
+  /* ── Smart Filter ── */
+  .smart-filter-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .filter-mode-toggle {
+    display: flex;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .filter-mode-toggle button {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 14px;
+    font-family: 'Cairo', sans-serif;
+    padding: 5px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .15s, color .15s;
+  }
+
+  .filter-mode-toggle button.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .filter-inputs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .filter-inputs label {
+    font-size: 14px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .filter-inputs input[type="date"],
+  .filter-inputs input[type="month"] {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 14px;
+    padding: 4px 8px;
+    height: 30px;
+    font-family: 'Cairo', sans-serif;
+  }
+
+  .filter-inputs input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .btn-apply-filter {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 14px;
+    font-size: 14px;
+    font-family: 'Cairo', sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
+    height: 30px;
+  }
+
+  .btn-apply-filter:hover {
+    background: #3b5fe8;
+  }
+
+  /* ── Pagination ── */
+  .pagination-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 20px 0 8px;
+    flex-wrap: wrap;
+  }
+
+  .page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 15px;
+    font-family: 'Cairo', sans-serif;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+
+  .page-btn:hover {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  .page-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    font-weight: 700;
+    pointer-events: none;
+  }
+
+  .page-btn.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .page-info {
+    font-size: 14px;
+    color: var(--muted);
+    margin: 0 8px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-title"><i class="fa-solid fa-file-lines"></i> <span data-ar="التقارير"
+    data-en="Reports">التقارير</span></div>
+
+<!-- Month banner + smart filter -->
+<div class="month-banner"
+  style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+  <span><i class="fa-solid fa-calendar-check"></i> <span data-ar="البيانات المعروضة لـ"
+      data-en="Showing data for">البيانات المعروضة لـ</span> <strong>{{ month_label }}</strong></span>
+
+  <div class="smart-filter-wrap">
+    <div class="filter-mode-toggle">
+      <button type="button" id="btnModeMonthYear" onclick="switchFilterMode('monthyear')"><span data-ar="شهر / سنة"
+          data-en="Month / Year">شهر / سنة</span></button>
+      <button type="button" id="btnModeExact" onclick="switchFilterMode('exact')"><span data-ar="تاريخ محدد"
+          data-en="Exact Date">تاريخ محدد</span></button>
+    </div>
+
+    <form method="get" id="formMonthYear" class="filter-inputs">
+      <input type="hidden" name="filter_mode" value="monthyear">
+      {% if is_manager and filters.agent %}<input type="hidden" name="agent" value="{{ filters.agent }}">{% endif %}
+      {% if filters.classification %}<input type="hidden" name="classification" value="{{ filters.classification }}">{% endif %}
+      {% if filters.customer_name %}<input type="hidden" name="customer_name" value="{{ filters.customer_name }}">{% endif %}
+      {% if filters.resolved_type %}<input type="hidden" name="resolved_type" value="{{ filters.resolved_type }}">{% endif %}
+      {% if filters.category_id %}<input type="hidden" name="category_id" value="{{ filters.category_id }}"><input type="hidden" name="category_name" value="{{ filters.category_name }}">{% endif %}
+      <label data-ar="الشهر" data-en="Month">الشهر</label>
+      <input type="month" name="month_year" value="{{ filter_month_year|default:'' }}">
+      <button type="submit" class="btn-apply-filter"><i class="fa-solid fa-filter"></i> <span data-ar="تطبيق"
+          data-en="Apply">تطبيق</span></button>
+    </form>
+
+    <form method="get" id="formExact" class="filter-inputs" style="display:none;">
+      <input type="hidden" name="filter_mode" value="exact">
+      {% if is_manager and filters.agent %}<input type="hidden" name="agent" value="{{ filters.agent }}">{% endif %}
+      {% if filters.classification %}<input type="hidden" name="classification" value="{{ filters.classification }}">{% endif %}
+      {% if filters.customer_name %}<input type="hidden" name="customer_name" value="{{ filters.customer_name }}">{% endif %}
+      {% if filters.resolved_type %}<input type="hidden" name="resolved_type" value="{{ filters.resolved_type }}">{% endif %}
+      {% if filters.category_id %}<input type="hidden" name="category_id" value="{{ filters.category_id }}"><input type="hidden" name="category_name" value="{{ filters.category_name }}">{% endif %}
+      <label data-ar="من" data-en="From">من</label>
+      <input type="date" name="from" value="{{ filters.from }}">
+      <label data-ar="إلى" data-en="To">إلى</label>
+      <input type="date" name="to" value="{{ filters.to }}">
+      <button type="submit" class="btn-apply-filter"><i class="fa-solid fa-filter"></i> <span data-ar="تطبيق"
+          data-en="Apply">تطبيق</span></button>
+    </form>
+  </div>
+</div>
+
+<!-- Other filters bar -->
+<form method="get" id="mainForm">
+  <input type="hidden" name="filter_mode" value="{{ filter_mode }}">
+  <input type="hidden" name="month_year" value="{{ filter_month_year }}">
+  {% if filter_mode == 'exact' %}
+  <input type="hidden" name="from" value="{{ filters.from }}">
+  <input type="hidden" name="to" value="{{ filters.to }}">
+  {% endif %}
+  {% if filters.customer_name %}<input type="hidden" name="customer_name" value="{{ filters.customer_name }}">{% endif %}
+  {% if filters.category_id %}<input type="hidden" name="category_id" value="{{ filters.category_id }}"><input type="hidden" name="category_name" value="{{ filters.category_name }}">{% endif %}
+  <div class="filters-bar">
+    {% if is_manager %}
+    <select class="select-input" name="agent">
+      <option value="" data-ar="كل دعم العملاء" data-en="All Support">كل دعم العملاء</option>
+      {% for a in agents %}
+      <option value="{{ a }}" {% if filters.agent == a %}selected{% endif %}>{{ a }}</option>
+      {% endfor %}
+    </select>
+    {% endif %}
+    <select class="select-input" name="resolved_type">
+      <option value="" data-ar="كل الحالات" data-en="All Statuses" {% if filters.resolved_type == '' %}selected{% endif %}>كل الحالات</option>
+      <option value="1" data-ar="محلول" data-en="Resolved" {% if filters.resolved_type == '1' %}selected{% endif %}>محلول</option>
+      <option value="0" data-ar="غير محلول" data-en="Unresolved" {% if filters.resolved_type == '0' %}selected{% endif %}>غير محلول</option>
+      <option value="2" data-ar="غير محدد" data-en="Unspecified problem" {% if filters.resolved_type == '2' %}selected{% endif %}>غير محدد</option>
+    </select>
+    <input class="search-input" type="text" name="classification" placeholder="فلتر بالتصنيف..."
+      data-ar-placeholder="فلتر بالتصنيف..." data-en-placeholder="Filter by classification..."
+      value="{{ filters.classification }}" style="min-width:180px">
+    {% if filters.customer_name %}
+    <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(124,58,237,0.15);border:1px solid rgba(124,58,237,0.4);color:#a78bfa;border-radius:6px;padding:4px 10px;font-size:13px;white-space:nowrap;">
+      <i class="fa-solid fa-user"></i> {{ filters.customer_name }}
+      <a href="{% url 'reports_list' %}?filter_mode={{ filter_mode }}&month_year={{ filter_month_year }}&from={{ filters.from }}&to={{ filters.to }}&agent={{ filters.agent }}&classification={{ filters.classification }}&resolved_type={{ filters.resolved_type }}&category_id={{ filters.category_id }}" style="color:inherit;margin-right:2px;" title="مسح فلتر العميل"><i class="fa-solid fa-xmark"></i></a>
+    </span>
+    {% endif %}
+    {% if filters.category_id %}
+    <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.4);color:#f59e0b;border-radius:6px;padding:4px 10px;font-size:13px;white-space:nowrap;">
+      <i class="fa-solid fa-tag"></i>
+      <span data-ar="الفئة: {{ filters.category_name|default:filters.category_id }}" data-en="Category: {{ filters.category_name|default:filters.category_id }}">{{ filters.category_name|default:filters.category_id }}</span>
+      <a href="{% url 'reports_list' %}?filter_mode={{ filter_mode }}&month_year={{ filter_month_year }}&from={{ filters.from }}&to={{ filters.to }}&agent={{ filters.agent }}&classification={{ filters.classification }}&customer_name={{ filters.customer_name }}&resolved_type={{ filters.resolved_type }}" style="color:inherit;margin-right:2px;" title="مسح فلتر الفئة | Clear category filter"><i class="fa-solid fa-xmark"></i></a>
+    </span>
+    {% endif %}
+    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-filter"></i> <span data-ar="فلتر"
+        data-en="Filter">فلتر</span></button>
+    <a href="{% url 'reports_list' %}" class="btn btn-ghost"><i class="fa-solid fa-xmark"></i> <span data-ar="مسح"
+        data-en="Clear">مسح</span></a>
+    <a href="{% url 'monthly' %}" class="btn btn-ghost"
+      style="margin-right:auto;background:rgba(79,110,247,.12);border-color:var(--accent);color:var(--accent)">
+      <i class="fa-solid fa-calendar-days"></i> <span data-ar="تقرير شهري" data-en="Monthly Report">تقرير شهري</span>
+    </a>
+  </div>
+</form>
+
+<div class="card">
+  <div class="section-title">{{ total_count }} <span data-ar="نتيجة" data-en="results">نتيجة</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th data-ar="المحادثة" data-en="Conv.">المحادثة</th>
+          <th data-ar="العميل" data-en="Customer">العميل</th>
+          <th data-ar="الهاتف" data-en="Phone">الهاتف</th>
+          <th data-ar="الأيجنت" data-en="Agent">الأيجنت</th>
+          <th data-ar="التصنيف" data-en="Classification">التصنيف</th>
+          <th data-ar="التاريخ" data-en="Date">التاريخ</th>
+          <th data-ar="الوقت" data-en="Time">الوقت</th>
+          <th data-ar="وقت الحل" data-en="Resolution Time">وقت الحل</th>
+          <th data-ar="الملخص" data-en="Summary">الملخص</th>
+          <th data-ar="الحالة" data-en="Status">الحالة</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in data %}
+        <tr>
+          <td><span class="badge badge-blue">{{ r.conv_id }}</span></td>
+          <td>{{ r.customer_name }}</td>
+          <td style="direction:ltr;font-size:13px">{{ r.customer_phone }}</td>
+          <td>{{ r.agent_name }}</td>
+          <td class="classification-cell">
+            <div class="classification-wrap">
+              <span class="classification-text">{{ r.classification }}</span>
+              <button class="classification-toggle" onclick="toggleClassification(this)" title="عرض الكل">
+                <i class="fa-solid fa-chevron-down"></i>
+              </button>
+            </div>
+          </td>
+          <td>{{ r.resolve_date }}</td>
+          <td>{{ r.resolved_time }}</td>
+          <td>
+            {% if r.resolution_minutes %}
+            <span style="font-size:13px;font-weight:600;color:var(--blue)">{{ r.resolution_minutes }} <span data-ar="د" data-en="min">د</span></span>
+            {% else %}
+            <span style="color:var(--muted);font-size:12px">—</span>
+            {% endif %}
+          </td>
+          <td class="summary-cell">
+            <div class="summary-wrap">
+              <span class="summary-text">{{ r.summary }}</span>
+              <button class="summary-toggle" onclick="toggleSummary(this)" title="عرض الكل">
+                <i class="fa-solid fa-chevron-down"></i>
+              </button>
+            </div>
+          </td>
+          <td>
+            {% if r.problem_type == 2 %}
+            <span class="badge badge-purple">{{ r.status_label|default:"Unspecified problem" }}</span>
+            {% elif r.status_label == 'Resolved' %}
+            <span class="badge badge-success">Resolved</span>
+            {% else %}
+            <span class="badge badge-danger">Unresolved</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="10" style="text-align:center;color:var(--muted);padding:40px" data-ar="لا توجد نتائج"
+            data-en="No results">لا توجد نتائج</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if data.has_other_pages %}
+  <div class="pagination-wrap">
+    {% if data.has_previous %}
+    <a class="page-btn" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ data.previous_page_number }}">
+      <i class="fa-solid fa-chevron-right"></i>
+    </a>
+    {% else %}
+    <span class="page-btn disabled"><i class="fa-solid fa-chevron-right"></i></span>
+    {% endif %}
+
+    {% for num in page_range %}
+      {% if num %}
+        {% if data.number == num %}
+          <span class="page-btn active">{{ num }}</span>
+        {% else %}
+          <a class="page-btn" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+        {% endif %}
+      {% else %}
+        <span class="page-btn disabled" style="border:none;background:none;min-width:20px;">…</span>
+      {% endif %}
+    {% endfor %}
+
+    {% if data.has_next %}
+    <a class="page-btn" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ data.next_page_number }}">
+      <i class="fa-solid fa-chevron-left"></i>
+    </a>
+    {% else %}
+    <span class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></span>
+    {% endif %}
+
+    <span class="page-info">
+      <span data-ar="صفحة" data-en="Page">صفحة</span>
+      {{ data.number }}
+      <span data-ar="من" data-en="of">من</span>
+      {{ data.paginator.num_pages }}
+    </span>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function switchFilterMode(mode) {
+    var isMY = mode === 'monthyear';
+    document.getElementById('formMonthYear').style.display = isMY ? 'flex' : 'none';
+    document.getElementById('formExact').style.display = isMY ? 'none' : 'flex';
+    document.getElementById('btnModeMonthYear').classList.toggle('active', isMY);
+    document.getElementById('btnModeExact').classList.toggle('active', !isMY);
+  }
+  (function () {
+    var mode = new URLSearchParams(window.location.search).get('filter_mode') || 'monthyear';
+    switchFilterMode(mode);
+  })();
+
+  function toggleSummary(btn) {
+    var text = btn.previousElementSibling;
+    var expanded = text.classList.toggle('expanded');
+    btn.classList.toggle('open', expanded);
+  }
+
+  function toggleClassification(btn) {
+    var text = btn.previousElementSibling;
+    var expanded = text.classList.toggle('expanded');
+    btn.classList.toggle('open', expanded);
+  }
+
+  // Show the expand arrow only when classification text is actually clipped
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.classification-text').forEach(function (el) {
+      if (el.scrollHeight > el.clientHeight + 2) {
+        el.nextElementSibling.style.display = 'inline-flex';
+      }
+    });
+  });
+</script>
+{% endblock %}

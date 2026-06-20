@@ -1,0 +1,563 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="google-site-verification" content="iSoA_5JqTTbepfUwQShRrlH0p-10fUXwZt6rpi5wgrw" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>تسجيل الدخول - Nile Techno</title>
+  <link rel="icon" type="image/png" href="{% static 'images/NTLogo3.png' %}">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    body {
+      font-family: 'Cairo', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      background: #040f1e;
+      color: #e0f0ff;
+      overflow-x: hidden;
+    }
+
+    .bg-slide {
+      position: fixed;
+      inset: 0;
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+      z-index: 0;
+      opacity: 0;
+      transition: opacity 1.2s ease-in-out;
+    }
+
+    .bg-slide.active {
+      opacity: 1;
+    }
+
+    .bg-slide::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to left,
+          rgba(3, 10, 25, 0.88) 0%,
+          rgba(3, 10, 25, 0.70) 42%,
+          rgba(3, 10, 25, 0.10) 70%,
+          rgba(3, 10, 25, 0.0) 100%);
+    }
+
+    .card-wrap {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      min-height: 100vh;
+      width: 100%;
+      padding: 20px clamp(16px, 5vw, 60px);
+    }
+
+    .card {
+      width: min(380px, 90vw);
+      background: rgba(4, 14, 32, 0.62);
+      border: 1px solid rgba(0, 185, 220, 0.22);
+      border-radius: clamp(14px, 3vw, 22px);
+      padding: clamp(22px, 4vw, 38px) clamp(18px, 4vw, 34px) clamp(18px, 3vw, 30px);
+      position: relative;
+      backdrop-filter: blur(24px) saturate(1.6);
+      -webkit-backdrop-filter: blur(24px) saturate(1.6);
+      box-shadow: 0 0 0 1px rgba(0, 200, 230, 0.06) inset,
+        0 28px 65px rgba(0, 0, 0, 0.65),
+        0 0 40px rgba(10, 80, 180, 0.12);
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 16%;
+      right: 16%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 210, 240, 0.7), transparent);
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: clamp(14px, 3vw, 22px)
+    }
+
+    .logo img {
+      width: clamp(80px, 20vw, 200px);
+      filter: drop-shadow(0 0 10px rgba(0, 200, 230, 0.35))
+    }
+
+    .logo p {
+      font-size: clamp(8px, 1.8vw, 9.5px);
+      color: rgba(120, 175, 210, 0.48);
+      margin-top: 4px;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+
+    .sec-title {
+      text-align: center;
+      font-size: clamp(12px, 2.5vw, 14px);
+      font-weight: 700;
+      color: rgba(200, 230, 255, 0.8);
+      margin-bottom: clamp(14px, 3vw, 20px);
+      position: relative;
+    }
+
+    .sec-title::before,
+    .sec-title::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 28%;
+      height: 1px;
+      background: rgba(0, 175, 215, 0.18);
+    }
+
+    .sec-title::before {
+      right: 0
+    }
+
+    .sec-title::after {
+      left: 0
+    }
+
+    .field {
+      margin-bottom: clamp(10px, 2.5vw, 13px)
+    }
+
+    .field label {
+      display: block;
+      font-size: clamp(11px, 2vw, 12px);
+      font-weight: 600;
+      color: rgba(120, 175, 210, 0.75);
+      margin-bottom: 6px;
+    }
+
+    .wrap {
+      position: relative
+    }
+
+    .wrap i {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(90, 150, 195, 0.55);
+      font-size: 13px;
+      pointer-events: none;
+    }
+
+    .wrap input {
+      width: 100%;
+      padding: clamp(8px, 2vw, 10px) 36px clamp(8px, 2vw, 10px) 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(0, 165, 205, 0.22);
+      border-radius: 9px;
+      color: #e0f0ff;
+      font-family: 'Cairo', sans-serif;
+      font-size: clamp(13px, 2.5vw, 14px);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .wrap input::placeholder {
+      color: rgba(140, 185, 220, 0.28)
+    }
+
+    .wrap input:focus {
+      border-color: rgba(0, 200, 230, 0.55);
+      box-shadow: 0 0 0 3px rgba(0, 200, 230, 0.09)
+    }
+
+    .btn-main {
+      width: 100%;
+      padding: clamp(9px, 2.5vw, 11px);
+      border-radius: 9px;
+      border: none;
+      background: linear-gradient(135deg, #0a6abf 0%, #053d7a 100%);
+      color: #fff;
+      font-family: 'Cairo', sans-serif;
+      font-size: clamp(13px, 2.5vw, 14px);
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 4px;
+      box-shadow: 0 4px 18px rgba(10, 90, 190, 0.42);
+      transition: opacity .2s, transform .15s;
+    }
+
+    .btn-main:hover {
+      opacity: .88;
+      transform: translateY(-1px)
+    }
+
+    .btn-main:active {
+      transform: scale(.985)
+    }
+
+    .or {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: clamp(8px, 2vw, 12px) 0;
+      color: rgba(100, 145, 175, 0.4);
+      font-size: 11px
+    }
+
+    .or::before,
+    .or::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(0, 155, 195, 0.13)
+    }
+
+    .btn-sec {
+      width: 100%;
+      padding: clamp(8px, 2vw, 9px);
+      border-radius: 9px;
+      background: rgba(50, 200, 110, 0.07);
+      border: 1px solid rgba(50, 200, 110, 0.22);
+      color: #6de89a;
+      font-family: 'Cairo', sans-serif;
+      font-size: clamp(12px, 2.5vw, 13px);
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .btn-sec:hover {
+      background: rgba(50, 200, 110, 0.14);
+      border-color: rgba(50, 200, 110, 0.45)
+    }
+
+    .foot {
+      text-align: center;
+      margin-top: clamp(12px, 2.5vw, 16px);
+      font-size: clamp(9px, 1.8vw, 10px);
+      color: rgb(241 247 252, 0.57)
+    }
+
+    .lang-btn {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(0, 185, 220, 0.12);
+      border: 1px solid rgba(0, 185, 220, 0.3);
+      color: rgba(180, 225, 240, 0.85);
+      font-family: 'Cairo', sans-serif;
+      font-size: clamp(10px, 1.8vw, 11px);
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all .2s;
+      letter-spacing: .04em;
+      z-index: 20;
+    }
+
+    .lang-btn:hover {
+      background: rgba(0, 185, 220, 0.22);
+      border-color: rgba(0, 185, 220, 0.55)
+    }
+
+    .slide-dots {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: flex;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.25);
+      cursor: pointer;
+      transition: background .3s, transform .3s;
+    }
+
+    .dot.active {
+      background: rgba(0, 200, 230, 0.85);
+      transform: scale(1.3);
+    }
+
+    #ripple-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    @media(max-width:600px) {
+      body {
+        justify-content: center
+      }
+
+      .card-wrap {
+        justify-content: center;
+        align-items: center;
+        padding: 16px
+      }
+
+      .card {
+        width: min(360px, 92vw)
+      }
+
+      .bg-slide::after {
+        background: rgba(3, 10, 25, 0.72)
+      }
+    }
+
+    @media(min-width:601px) and (max-width:1024px) {
+      .card {
+        width: min(400px, 52vw)
+      }
+    }
+  </style>
+</head>
+
+<body>
+  {% load static %}
+
+  <!-- ── Background slides ── -->
+  <div class="bg-slide active" style='background-image:url("{% static "images/login.jpg" %}")'></div>
+  <div class="bg-slide" style='background-image:url("{% static "images/login2.jpg" %}")'></div>
+  <div class="bg-slide" style='background-image:url("{% static "images/login3.jpg" %}")'></div>
+  <div class="bg-slide" style='background-image:url("{% static "images/login4.jpg" %}")'></div>
+
+  <!-- ── Ripple canvas ── -->
+  <canvas id="ripple-canvas"></canvas>
+
+  <!-- ── Dots ── -->
+  <div class="slide-dots">
+    <div class="dot active" onclick="goToSlide(0)"></div>
+    <div class="dot" onclick="goToSlide(1)"></div>
+    <div class="dot" onclick="goToSlide(2)"></div>
+    <div class="dot" onclick="goToSlide(3)"></div>
+  </div>
+
+  <div class="card-wrap">
+    <div class="card">
+      <button class="lang-btn" onclick="toggleLang()" id="langBtn">عربي</button>
+      <div class="logo">
+        <img src="{% static 'images/NTLogo.png' %}"
+          style="width: 220px;filter:drop-shadow(0 0 10px rgba(0,200,230,0.35))">
+        <p id="tagline">Let us Manage Your Business</p>
+      </div>
+      <div class="sec-title" id="secTitle">Sign In</div>
+      {% if messages %}{% for msg in messages %}
+      <div
+        style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#fca5a5;border-radius:9px;padding:10px 13px;font-size:13px;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+        <i class="fa-solid fa-circle-xmark"></i> {{ msg }}
+      </div>
+      {% endfor %}{% endif %}
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="login">
+        <div class="field">
+          <label id="idLabel">Your ID</label>
+          <div class="wrap">
+            <i class="fa-solid fa-id-badge"></i>
+            <input type="text" name="agent_id" id="idInput" placeholder="Enter your ID" required autofocus>
+          </div>
+        </div>
+        <div class="field">
+          <label id="passLabel">Password</label>
+          <div class="wrap">
+            <i class="fa-solid fa-lock"></i>
+            <input type="password" name="password" id="passInput" placeholder="••••••••" required>
+          </div>
+        </div>
+        <button type="submit" class="btn-main">
+          <i class="fa-solid fa-right-to-bracket"></i>&nbsp; <span id="loginText">Login</span>
+        </button>
+      </form>
+      <div class="or" id="orText">or</div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="visitor">
+        <button type="submit" class="btn-sec">
+          <i class="fa-solid fa-eye"></i>&nbsp; <span id="visitorText">Continue as Guest</span>
+        </button>
+      </form>
+      <p class="foot" id="loginFooter">© 2026 Nile Techno — All rights reserved | Design by Abdullah Elsawy</p>
+    </div>
+  </div>
+
+  <script>
+    /* ── Slideshow ── */
+    const slides = document.querySelectorAll('.bg-slide');
+    const dots = document.querySelectorAll('.dot');
+    let current = 0;
+    let timer;
+
+    function goToSlide(index) {
+      slides[current].classList.remove('active');
+      dots[current].classList.remove('active');
+      current = index;
+      slides[current].classList.add('active');
+      dots[current].classList.add('active');
+      resetTimer();
+    }
+
+    function nextSlide() {
+      goToSlide((current + 1) % slides.length);
+    }
+
+    function resetTimer() {
+      clearInterval(timer);
+      timer = setInterval(nextSlide, 6000);
+    }
+
+    resetTimer();
+
+    /* ── Water Ripple Effect ── */
+    const canvas = document.getElementById('ripple-canvas');
+    const ctx = canvas.getContext('2d');
+    let W, H, cols, rows, curr, prev;
+    const DAMP = 0.97;
+    const CELL = 4;
+
+    function initRipple() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+      cols = Math.ceil(W / CELL) + 2;
+      rows = Math.ceil(H / CELL) + 2;
+      curr = new Float32Array(cols * rows);
+      prev = new Float32Array(cols * rows);
+    }
+
+    function drop(x, y, strength) {
+      const cx = Math.floor(x / CELL);
+      const cy = Math.floor(y / CELL);
+      for (let dy = -3; dy <= 3; dy++) {
+        for (let dx = -3; dx <= 3; dx++) {
+          const r = cy + dy, c = cx + dx;
+          if (r > 0 && r < rows - 1 && c > 0 && c < cols - 1)
+            prev[r * cols + c] += strength * Math.max(0, 1 - (Math.abs(dx) + Math.abs(dy)) / 4);
+        }
+      }
+    }
+
+    function stepRipple() {
+      for (let r = 1; r < rows - 1; r++) {
+        for (let c = 1; c < cols - 1; c++) {
+          const i = r * cols + c;
+          curr[i] = (prev[(r - 1) * cols + c] + prev[(r + 1) * cols + c] +
+            prev[r * cols + c - 1] + prev[r * cols + c + 1]) / 2 - curr[i];
+          curr[i] *= DAMP;
+        }
+      }
+      [curr, prev] = [prev, curr];
+    }
+
+    function drawRipple() {
+      const img = ctx.createImageData(W, H);
+      const d = img.data;
+      for (let r = 1; r < rows - 1; r++) {
+        for (let c = 1; c < cols - 1; c++) {
+          const slope_x = prev[r * cols + (c + 1)] - prev[r * cols + (c - 1)];
+          const slope_y = prev[(r + 1) * cols + c] - prev[(r - 1) * cols + c];
+          const bright = Math.min(180, Math.max(0, (slope_x + slope_y) * 1.2));
+          const alpha = Math.min(55, Math.abs(prev[r * cols + c]) * 2.2);
+          for (let py = 0; py < CELL; py++) {
+            for (let px = 0; px < CELL; px++) {
+              const px_ = c * CELL + px, py_ = r * CELL + py;
+              if (px_ >= W || py_ >= H) continue;
+              const idx = (py_ * W + px_) * 4;
+              d[idx] = 180 + bright * 0.25;
+              d[idx + 1] = 210 + bright * 0.18;
+              d[idx + 2] = 255;
+              d[idx + 3] = alpha;
+            }
+          }
+        }
+      }
+      ctx.putImageData(img, 0, 0);
+    }
+
+    let moving = false, moveTimer;
+    document.addEventListener('mousemove', e => {
+      const rect = document.querySelector('.card').getBoundingClientRect();
+      const inside = e.clientX >= rect.left && e.clientX <= rect.right &&
+        e.clientY >= rect.top && e.clientY <= rect.bottom;
+      if (!inside) {
+        drop(e.clientX, e.clientY, 120);
+        moving = true;
+        clearTimeout(moveTimer);
+        moveTimer = setTimeout(() => { moving = false; }, 100);
+      }
+    });
+
+    let idleTimer = 0;
+    function loop() {
+      stepRipple();
+      if (++idleTimer % 4 === 0 && !moving)
+        drop(Math.random() * W * 0.6, Math.random() * H, 8);
+      drawRipple();
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener('resize', initRipple);
+    initRipple();
+    loop();
+
+    /* ── Lang toggle ── */
+    const t = {
+      en: {
+        btn: 'عربي', dir: 'ltr', tagline: 'Let us Manage Your Business',
+        title: 'Sign In', idLabel: 'Your ID', idPh: 'Enter your ID',
+        passLabel: 'Password', passPh: '••••••••',
+        login: 'Login', or: 'or', visitor: 'Continue as Guest'
+      },
+      ar: {
+        btn: 'English', dir: 'rtl', tagline: 'دعنا ندير أعمالك',
+        title: 'تسجيل الدخول', idLabel: 'الـ ID الخاص بك', idPh: 'أدخل الـ ID',
+        passLabel: 'كلمة المرور', passPh: '••••••••',
+        login: 'دخول', or: 'أو', visitor: 'دخول كزائر'
+      }
+    };
+    let lang = 'en';
+
+    function toggleLang() {
+      lang = lang === 'en' ? 'ar' : 'en';
+      const d = t[lang];
+      document.getElementById('langBtn').textContent = d.btn;
+      document.getElementById('tagline').textContent = d.tagline;
+      document.getElementById('secTitle').textContent = d.title;
+      document.getElementById('idLabel').textContent = d.idLabel;
+      document.getElementById('idInput').placeholder = d.idPh;
+      document.getElementById('passLabel').textContent = d.passLabel;
+      document.getElementById('passInput').placeholder = d.passPh;
+      document.getElementById('loginText').textContent = d.login;
+      document.getElementById('orText').textContent = d.or;
+      document.getElementById('visitorText').textContent = d.visitor;
+      document.querySelector('.card').style.direction = d.dir;
+      document.querySelector('.card').style.textAlign = lang === 'ar' ? 'right' : 'left';
+      document.querySelectorAll('.wrap i').forEach(i => {
+        i.style.right = lang === 'ar' ? '12px' : 'auto';
+        i.style.left = lang === 'ar' ? 'auto' : '12px';
+      });
+      document.querySelectorAll('.wrap input').forEach(inp => {
+        inp.style.padding = lang === 'ar' ? '10px 36px 10px 12px' : '10px 12px 10px 36px';
+      });
+    }
+  </script>
+</body>
+
+</html>

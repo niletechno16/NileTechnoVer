@@ -1,0 +1,337 @@
+{% extends 'base.html' %}
+{% block title %}{{ customer.customer_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .customer-header {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 24px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+    }
+
+    .customer-header .big-avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--yellow), #f97316);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 29px;
+        font-weight: 800;
+        flex-shrink: 0;
+        color: #000;
+    }
+
+    .customer-header .info .name {
+        font-size: 23px;
+        font-weight: 800;
+    }
+
+    .customer-header .info .phone {
+        color: var(--muted);
+        font-size: 15px;
+        margin-top: 4px;
+    }
+
+    .customer-header .info .id {
+        color: var(--muted);
+        font-size: 14px;
+    }
+
+    /* ── Smart Filter ── */
+    .smart-filter-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .filter-mode-toggle {
+        display: flex;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .filter-mode-toggle button {
+        background: none;
+        border: none;
+        color: var(--muted);
+        font-size: 14px;
+        font-family: 'Cairo', sans-serif;
+        padding: 5px 12px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background .15s, color .15s;
+    }
+
+    .filter-mode-toggle button.active {
+        background: var(--accent);
+        color: #fff;
+    }
+
+    .filter-inputs {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .filter-inputs label {
+        font-size: 14px;
+        color: var(--muted);
+        white-space: nowrap;
+    }
+
+    .filter-inputs input[type="date"],
+    .filter-inputs input[type="month"] {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        font-size: 14px;
+        padding: 4px 8px;
+        height: 30px;
+        font-family: 'Cairo', sans-serif;
+    }
+
+    .filter-inputs input:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+
+    .btn-apply-filter {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 5px 14px;
+        font-size: 14px;
+        font-family: 'Cairo', sans-serif;
+        cursor: pointer;
+        white-space: nowrap;
+        height: 30px;
+    }
+
+    .btn-apply-filter:hover {
+        background: #3b5fe8;
+    }
+
+    /* ── Classification expand ── */
+    .classification-cell { max-width: 220px; }
+    .classification-wrap { display: flex; align-items: flex-start; gap: 4px; }
+    .classification-text {
+        flex: 1;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        transition: all 0.25s ease;
+        white-space: normal;
+        word-break: normal;
+        overflow-wrap: break-word;
+        border-radius: 20px;
+        padding: 3px 9px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .classification-text.expanded { display: block; overflow: visible; -webkit-line-clamp: unset; }
+    .expand-toggle {
+        flex-shrink: 0;
+        background: none;
+        border: none;
+        color: var(--muted);
+        cursor: pointer;
+        padding: 2px 4px;
+        border-radius: 4px;
+        font-size: 12px;
+        transition: color 0.15s, background 0.15s;
+        margin-top: 1px;
+        display: none;
+    }
+    .expand-toggle:hover { color: var(--accent); background: var(--surface2); }
+    .expand-toggle i { transition: transform 0.25s ease; }
+    .expand-toggle.open i { transform: rotate(180deg); }
+
+    /* ── Summary expand ── */
+    .summary-cell { max-width: 300px; color: var(--muted); font-size: 15px; line-height: 1.5; }
+    .summary-wrap { display: flex; align-items: flex-start; gap: 6px; }
+    .summary-text {
+        flex: 1;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        transition: all 0.25s ease;
+    }
+    .summary-text.expanded { display: block; overflow: visible; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:20px">
+    <a href="{% url 'customers_list' %}?filter_mode={{ filter_mode }}&month_year={{ filter_month_year }}&from={{ date_from }}&to={{ date_to }}"
+        class="btn btn-ghost">
+        <i class="fa-solid fa-arrow-right"></i> <span data-ar="رجوع" data-en="Back">رجوع</span>
+    </a>
+</div>
+
+<!-- Month banner + smart filter -->
+<div class="month-banner"
+    style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+    <span><i class="fa-solid fa-calendar-check"></i> <span data-ar="البيانات المعروضة لـ"
+            data-en="Showing data for">البيانات المعروضة لـ</span> <strong>{{ month_label }}</strong></span>
+
+    <div class="smart-filter-wrap">
+        <div class="filter-mode-toggle">
+            <button type="button" id="btnModeMonthYear" onclick="switchFilterMode('monthyear')"><span
+                    data-ar="شهر / سنة" data-en="Month / Year">شهر / سنة</span></button>
+            <button type="button" id="btnModeExact" onclick="switchFilterMode('exact')"><span data-ar="تاريخ محدد"
+                    data-en="Exact Date">تاريخ محدد</span></button>
+        </div>
+
+        <form method="get" id="formMonthYear" class="filter-inputs">
+            <input type="hidden" name="filter_mode" value="monthyear">
+            <label data-ar="الشهر" data-en="Month">الشهر</label>
+            <input type="month" name="month_year" value="{{ filter_month_year|default:'' }}">
+            <button type="submit" class="btn-apply-filter"><i class="fa-solid fa-filter"></i> <span data-ar="تطبيق"
+                    data-en="Apply">تطبيق</span></button>
+        </form>
+
+        <form method="get" id="formExact" class="filter-inputs" style="display:none;">
+            <input type="hidden" name="filter_mode" value="exact">
+            <label data-ar="من" data-en="From">من</label>
+            <input type="date" name="from" value="{{ date_from }}">
+            <label data-ar="إلى" data-en="To">إلى</label>
+            <input type="date" name="to" value="{{ date_to }}">
+            <button type="submit" class="btn-apply-filter"><i class="fa-solid fa-filter"></i> <span data-ar="تطبيق"
+                    data-en="Apply">تطبيق</span></button>
+        </form>
+    </div>
+</div>
+
+<div class="customer-header">
+    <div class="big-avatar">{{ customer.customer_name|first }}</div>
+    <div class="info">
+        <div class="name">{{ customer.customer_name }}</div>
+        <div class="phone"><i class="fa-solid fa-phone"></i> {{ customer.customer_phone }}</div>
+        <div class="id">ID: {{ customer.customer_id }}</div>
+    </div>
+    <div style="flex:1"></div>
+    {% if customer.avg_resolution_minutes %}
+    <div style="text-align:center">
+        <div style="font-size:22px;font-weight:800;color:var(--blue)">{{ customer.avg_resolution_minutes }}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px" data-ar="متوسط وقت الحل (د)"
+            data-en="Avg. Resolution (min)">متوسط وقت الحل (د)</div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="section-title"><span data-ar="سجل المحادثات" data-en="Conversation History">سجل المحادثات</span> ({{ reports|length }})</div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th data-ar="رقم المحادثة" data-en="Conv. #">رقم المحادثة</th>
+                    <th data-ar="الأيجنت" data-en="Agent">الأيجنت</th>
+                    <th data-ar="التصنيف" data-en="Classification">التصنيف</th>
+                    <th data-ar="التاريخ" data-en="Date">التاريخ</th>
+                    <th data-ar="الوقت" data-en="Time">الوقت</th>
+                    <th data-ar="وقت الحل" data-en="Resolution Time">وقت الحل</th>
+                    <th data-ar="الملخص" data-en="Summary">الملخص</th>
+                    <th data-ar="الحالة" data-en="Status">الحالة</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in reports %}
+                <tr>
+                    <td><span class="badge badge-blue"># {{ r.conv_id }}</span></td>
+                    <td>{{ r.agent_name }}</td>
+                    <td class="classification-cell">
+                        <div class="classification-wrap">
+                            <span class="classification-text">{{ r.classification }}</span>
+                            <button class="expand-toggle" onclick="toggleExpand(this)" title="عرض الكل">
+                                <i class="fa-solid fa-chevron-down"></i>
+                            </button>
+                        </div>
+                    </td>
+                    <td>{{ r.resolve_date }}</td>
+                    <td>{{ r.resolved_time }}</td>
+                    <td>
+                        {% if r.resolution_minutes %}
+                        <span style="font-size:13px;font-weight:600;color:var(--blue)">{{ r.resolution_minutes }} <span data-ar="د" data-en="min">د</span></span>
+                        {% else %}
+                        <span style="color:var(--muted);font-size:12px">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="summary-cell">
+<div class="summary-wrap">
+                            <span class="summary-text">{{ r.summary }}</span>
+                            <button class="expand-toggle" onclick="toggleExpand(this)" title="عرض الكل">
+                                <i class="fa-solid fa-chevron-down"></i>
+                            </button>
+                        </div>
+                    </td>
+                    <td>
+                        {% if r.problem_type == 2 %}
+                        <span class="badge badge-purple">{{ r.status_label|default:"Unspecified problem" }}</span>
+                        {% elif r.status_label == 'Resolved' %}
+                        <span class="badge badge-success">Resolved</span>
+                        {% else %}
+                        <span class="badge badge-danger">Unresolved</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align:center;color:var(--muted);padding:30px" data-ar="لا توجد محادثات"
+                        data-en="No conversations">لا توجد محادثات</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function switchFilterMode(mode) {
+        var isMY = mode === 'monthyear';
+        document.getElementById('formMonthYear').style.display = isMY ? 'flex' : 'none';
+        document.getElementById('formExact').style.display = isMY ? 'none' : 'flex';
+        document.getElementById('btnModeMonthYear').classList.toggle('active', isMY);
+        document.getElementById('btnModeExact').classList.toggle('active', !isMY);
+    }
+    (function () {
+        var mode = new URLSearchParams(window.location.search).get('filter_mode') || 'monthyear';
+        switchFilterMode(mode);
+    })();
+
+    function toggleExpand(btn) {
+        var text = btn.previousElementSibling;
+        var expanded = text.classList.toggle('expanded');
+        btn.classList.toggle('open', expanded);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.classification-text, .summary-text').forEach(function (el) {
+            if (el.scrollHeight > el.clientHeight + 2) {
+                el.nextElementSibling.style.display = 'inline-flex';
+            }
+        });
+    });
+</script>
+{% endblock %}

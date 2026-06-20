@@ -1,0 +1,444 @@
+{% extends 'base.html' %}
+{% block title %}Customers{% endblock %}
+
+{% block extra_css %}
+<style>
+    .customers-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 18px;
+    }
+
+    .customer-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 22px;
+        transition: border-color .2s, transform .2s;
+        cursor: pointer;
+        text-decoration: none;
+        display: block;
+        color: inherit;
+    }
+
+    .customer-card:hover {
+        border-color: var(--accent);
+        transform: translateY(-2px);
+    }
+
+    .customer-card .top {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 18px;
+    }
+
+    .customer-card .avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--yellow), #f97316);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: 800;
+        flex-shrink: 0;
+        color: #000;
+    }
+
+    .customer-card .name {
+        font-size: 17px;
+        font-weight: 700;
+    }
+
+    .customer-card .phone {
+        font-size: 14px;
+        color: var(--muted);
+        margin-top: 3px;
+        direction: ltr;
+        text-align: right;
+    }
+
+    .customer-card .stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+    }
+
+    .customer-card .stat-item {
+        text-align: center;
+    }
+
+    .customer-card .stat-item .s-val {
+        font-size: 23px;
+        font-weight: 800;
+    }
+
+    .customer-card .stat-item .s-lbl {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 2px;
+    }
+
+    /* ── Smart Filter ── */
+    .smart-filter-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .filter-mode-toggle {
+        display: flex;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .filter-mode-toggle button {
+        background: none;
+        border: none;
+        color: var(--muted);
+        font-size: 14px;
+        font-family: 'Cairo', sans-serif;
+        padding: 5px 12px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background .15s, color .15s;
+    }
+
+    .filter-mode-toggle button.active {
+        background: var(--accent);
+        color: #fff;
+    }
+
+    .filter-inputs {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .filter-inputs label {
+        font-size: 14px;
+        color: var(--muted);
+        white-space: nowrap;
+    }
+
+    .filter-inputs input[type="date"],
+    .filter-inputs input[type="month"] {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        font-size: 14px;
+        padding: 4px 8px;
+        height: 30px;
+        font-family: 'Cairo', sans-serif;
+    }
+
+    .filter-inputs input:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+
+    .btn-apply-filter {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 5px 14px;
+        font-size: 14px;
+        font-family: 'Cairo', sans-serif;
+        cursor: pointer;
+        white-space: nowrap;
+        height: 30px;
+    }
+
+    .btn-apply-filter:hover {
+        background: #3b5fe8;
+    }
+
+    /* ── Pagination ── */
+    .page-btn {
+        min-width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text);
+        font-family: 'Cairo', sans-serif;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 10px;
+        transition: background .15s, border-color .15s, color .15s;
+    }
+
+    .page-btn:hover:not(:disabled) {
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+
+    .page-btn.active {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+    }
+
+    .page-btn:disabled {
+        opacity: .35;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-title"><i class="fa-solid fa-users"></i> <span data-ar="العملاء" data-en="Customers">العملاء</span>
+</div>
+
+<!-- Month banner + smart filter -->
+<div class="month-banner"
+    style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+    <span><i class="fa-solid fa-calendar-check"></i> <span data-ar="البيانات المعروضة لـ"
+            data-en="Showing data for">البيانات المعروضة لـ</span> <strong>{{ month_label }}</strong></span>
+
+    <div class="smart-filter-wrap">
+        <div class="filter-mode-toggle">
+            <button type="button" id="btnModeMonthYear" onclick="switchFilterMode('monthyear')"><span
+                    data-ar="شهر / سنة" data-en="Month / Year">شهر / سنة</span></button>
+            <button type="button" id="btnModeExact" onclick="switchFilterMode('exact')"><span data-ar="تاريخ محدد"
+                    data-en="Exact Date">تاريخ محدد</span></button>
+        </div>
+
+        <form method="get" id="formMonthYear" class="filter-inputs">
+            <input type="hidden" name="filter_mode" value="monthyear">
+            {% if search %}<input type="hidden" name="search" value="{{ search }}">{% endif %}
+            <label data-ar="الشهر" data-en="Month">الشهر</label>
+            <input type="month" name="month_year" value="{{ filter_month_year|default:'' }}">
+            <button type="submit" class="btn-apply-filter"><i class="fa-solid fa-filter"></i> <span data-ar="تطبيق"
+                    data-en="Apply">تطبيق</span></button>
+        </form>
+
+        <form method="get" id="formExact" class="filter-inputs" style="display:none;">
+            <input type="hidden" name="filter_mode" value="exact">
+            {% if search %}<input type="hidden" name="search" value="{{ search }}">{% endif %}
+            <label data-ar="من" data-en="From">من</label>
+            <input type="date" name="from" value="{{ date_from }}">
+            <label data-ar="إلى" data-en="To">إلى</label>
+            <input type="date" name="to" value="{{ date_to }}">
+            <button type="submit" class="btn-apply-filter"><i class="fa-solid fa-filter"></i> <span data-ar="تطبيق"
+                    data-en="Apply">تطبيق</span></button>
+        </form>
+    </div>
+</div>
+
+<!-- Search bar -->
+<div class="filters-bar" style="margin-bottom:16px;">
+    <form method="get" style="display:contents;">
+        <input type="hidden" name="filter_mode" value="{{ filter_mode }}">
+        <input type="hidden" name="month_year" value="{{ filter_month_year }}">
+        {% if filter_mode == 'exact' %}
+        <input type="hidden" name="from" value="{{ date_from }}">
+        <input type="hidden" name="to" value="{{ date_to }}">
+        {% endif %}
+        <input class="search-input" type="text" name="search" placeholder="ابحث بالاسم أو الرقم..."
+            data-ar-placeholder="ابحث بالاسم أو الرقم..." data-en-placeholder="Search by name or number..."
+            value="{{ search }}">
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-magnifying-glass"></i> <span data-ar="بحث"
+                data-en="Search">بحث</span></button>
+        <a href="{% url 'customers_list' %}" class="btn btn-ghost"><i class="fa-solid fa-xmark"></i> <span data-ar="مسح"
+                data-en="Clear">مسح</span></a>
+    </form>
+</div>
+
+{% if customers %}
+
+<!-- Customers count -->
+<div style="margin-bottom:12px;font-size:13px;color:var(--muted)">
+    <span data-ar="إجمالي العملاء" data-en="Total Customers">إجمالي العملاء</span>:
+    <strong id="totalCount">{{ customers|length }}</strong>
+    &nbsp;|&nbsp;
+    <span data-ar="الصفحة" data-en="Page">الصفحة</span>
+    <strong id="currentPageLabel">1</strong>
+    <span data-ar="من" data-en="of">من</span>
+    <strong id="totalPagesLabel"></strong>
+</div>
+
+<!-- Cards grid -->
+<div class="customers-grid" id="customersGrid">
+    {% for c in customers %}
+    <a href="{% url 'customer_detail' c.customer_id %}?filter_mode={{ filter_mode }}&month_year={{ filter_month_year }}&from={{ date_from }}&to={{ date_to }}"
+        class="customer-card"
+        data-total="{{ c.total_reports }}">
+        <div class="top">
+            <div class="avatar">{{ c.customer_name|first }}</div>
+            <div>
+                <div class="name">{{ c.customer_name }}</div>
+                <div class="phone"><i class="fa-solid fa-phone" style="font-size:10px"></i> {{ c.customer_phone }}</div>
+            </div>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <div class="s-val">{{ c.total_reports }}</div>
+                <div class="s-lbl" data-ar="الكل" data-en="Total">الكل</div>
+            </div>
+            <div class="stat-item">
+                <div class="s-val" style="color:var(--green)">{{ c.resolved }}</div>
+                <div class="s-lbl" data-ar="محلول" data-en="Resolved">محلول</div>
+            </div>
+            <div class="stat-item">
+                <div class="s-val" style="color:var(--red)">{{ c.unresolved }}</div>
+                <div class="s-lbl" data-ar="غير محلول" data-en="Unresolved">غير محلول</div>
+            </div>
+            <div class="stat-item">
+                <div class="s-val" style="color:var(--purple)">{{ c.unspecified|default:0 }}</div>
+                <div class="s-lbl" data-ar="غير محدد" data-en="Unspecified">غير محدد</div>
+            </div>
+        </div>
+        {% if c.avg_resolution_minutes %}
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:11px;color:var(--muted)" data-ar="متوسط وقت الحل" data-en="Avg. Resolution">متوسط وقت الحل</span>
+            <span style="font-size:14px;font-weight:800;color:var(--blue)">{{ c.avg_resolution_minutes }} <span data-ar="د" data-en="min">د</span></span>
+        </div>
+        {% endif %}
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);text-align:center;font-size:11px;color:var(--accent);font-weight:600;letter-spacing:.3px;">
+            <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:10px;margin-left:4px;"></i>
+            <span data-ar="اضغط لعرض التفاصيل" data-en="Click to view details">اضغط لعرض التفاصيل</span>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+
+<!-- Pagination controls -->
+<div id="paginationWrap" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:28px;flex-wrap:wrap;"></div>
+
+{% else %}
+<div style="text-align:center;padding:60px;color:var(--muted)">
+    <i class="fa-solid fa-users" style="font-size:48px;opacity:.3;display:block;margin-bottom:16px"></i>
+    <span data-ar="لا توجد نتائج" data-en="No results found">لا توجد نتائج</span>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function switchFilterMode(mode) {
+        var isMY = mode === 'monthyear';
+        document.getElementById('formMonthYear').style.display = isMY ? 'flex' : 'none';
+        document.getElementById('formExact').style.display = isMY ? 'none' : 'flex';
+        document.getElementById('btnModeMonthYear').classList.toggle('active', isMY);
+        document.getElementById('btnModeExact').classList.toggle('active', !isMY);
+    }
+    (function () {
+        var mode = new URLSearchParams(window.location.search).get('filter_mode') || 'monthyear';
+        switchFilterMode(mode);
+    })();
+
+    // ── Pagination ──
+    var CARDS_PER_PAGE = 30;
+    var currentPage = 1;
+    var allCards = [];
+    var filteredCards = [];
+
+    function initPagination() {
+        allCards = Array.from(document.querySelectorAll('.customer-card'));
+        // مرتبين تنازلياً بالـ total (البروسيدر بيرتبهم بس نتأكد)
+        allCards.sort(function(a, b) {
+            return parseInt(b.dataset.total) - parseInt(a.dataset.total);
+        });
+        filteredCards = allCards.slice();
+        renderPage(1);
+    }
+
+    function renderPage(page) {
+        currentPage = page;
+        var total = filteredCards.length;
+        var totalPages = Math.ceil(total / CARDS_PER_PAGE) || 1;
+        var start = (page - 1) * CARDS_PER_PAGE;
+        var end = start + CARDS_PER_PAGE;
+
+        // أخبي كل الكروت
+        allCards.forEach(function(c) { c.style.display = 'none'; });
+
+        // اعرض الكروت بتاعة الصفحة الحالية
+        filteredCards.slice(start, end).forEach(function(c) { c.style.display = 'block'; });
+
+        // أپديت الـ labels
+        document.getElementById('currentPageLabel').textContent = page;
+        document.getElementById('totalPagesLabel').textContent = totalPages;
+        document.getElementById('totalCount').textContent = total;
+
+        // ارسم أزرار الـ pagination
+        buildPagination(page, totalPages);
+    }
+
+    function buildPagination(page, totalPages) {
+        var wrap = document.getElementById('paginationWrap');
+        wrap.innerHTML = '';
+        if (totalPages <= 1) return;
+
+        function btn(label, targetPage, isActive, isDisabled) {
+            var b = document.createElement('button');
+            b.className = 'page-btn' + (isActive ? ' active' : '');
+            b.disabled = isDisabled;
+            b.innerHTML = label;
+            b.onclick = function() { renderPage(targetPage); window.scrollTo({top:0, behavior:'smooth'}); };
+            wrap.appendChild(b);
+        }
+
+        // زر السابق
+        btn('<i class="fa-solid fa-chevron-right"></i>', page - 1, false, page === 1);
+
+        // أرقام الصفحات
+        var pages = [];
+        if (totalPages <= 7) {
+            for (var i = 1; i <= totalPages; i++) pages.push(i);
+        } else {
+            pages = [1, 2];
+            if (page > 4) pages.push('...');
+            for (var i = Math.max(3, page-1); i <= Math.min(totalPages-2, page+1); i++) pages.push(i);
+            if (page < totalPages - 3) pages.push('...');
+            pages.push(totalPages - 1, totalPages);
+            pages = [...new Set(pages)];
+        }
+
+        pages.forEach(function(p) {
+            if (p === '...') {
+                var span = document.createElement('span');
+                span.style.cssText = 'color:var(--muted);padding:0 4px;';
+                span.textContent = '...';
+                wrap.appendChild(span);
+            } else {
+                btn(p, p, p === page, false);
+            }
+        });
+
+        // زر التالي
+        btn('<i class="fa-solid fa-chevron-left"></i>', page + 1, false, page === totalPages);
+    }
+
+    // Search مع الـ pagination
+    document.querySelector('input[name="search"]').addEventListener('input', function () {
+        var val = this.value.toLowerCase();
+        filteredCards = allCards.filter(function(card) {
+            var name = card.querySelector('.name').textContent.toLowerCase();
+            return name.includes(val);
+        });
+        renderPage(1);
+    });
+
+    // شغل الـ pagination بعد تحميل الصفحة
+    if (document.getElementById('customersGrid')) {
+        initPagination();
+    }
+</script>
+{% endblock %}
