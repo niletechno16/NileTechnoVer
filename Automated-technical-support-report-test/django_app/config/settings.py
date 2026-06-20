@@ -10,10 +10,8 @@ ALLOWED_HOSTS = ['*']
 
 # ---------------- APPS ----------------
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
+    # شيلنا django.contrib.admin و django.contrib.auth و django.contrib.contenttypes
+    # و django.contrib.sessions لأنهم محتاجين SQLite/ORM — بنستخدم MSSQL مباشرة
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
@@ -23,16 +21,15 @@ INSTALLED_APPS = [
     'apps.reports.apps.ReportsConfig',
     'apps.dashboard.apps.DashboardConfig',
     'django.contrib.sitemaps',
-
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',   # بيستخدم SESSION_ENGINE المخصص
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware', # بيستخدم AUTHENTICATION_BACKENDS المخصص
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -57,14 +54,18 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # ---------------- DATABASE ----------------
-# auth/sessions/notifications بقوا على نفس SQL Server (مش SQLite، لأن
-# الملف المحلي كان بيضيع كل cold start على Vercel — serverless فيلسستم مؤقت).
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# لا SQLite — كل حاجة على SQL Server عشان Vercel serverless filesystem مؤقت.
+# Django ORM مش بيُستخدم — الاتصال عن طريق pymssql مباشرة في db_connection.py
+DATABASES = {}
+
+# ---------------- AUTH BACKEND ----------------
+AUTHENTICATION_BACKENDS = [
+    'apps.users.backends.MSSQLAuthBackend',
+]
+
+# ---------------- SESSION BACKEND ----------------
+SESSION_ENGINE = 'apps.users.session_backend'
+SESSION_COOKIE_AGE = 60 * 60 * 8  # 8 ساعات
 
 # نفس بيانات SQL Server دي، بس عن طريق pymssql مباشرة في الـ views
 # (للـ stored procedures وجداول التقارير القديمة اللي مالهاش Django models)
