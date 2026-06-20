@@ -98,7 +98,11 @@ USE_TZ = True
 # ---------------- STATIC FILES ----------------
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+# بما إن Vercel @vercel/python builder مش بيشغل build.sh / collectstatic تلقائيًا،
+# بنخلي WhiteNoise يقرأ الملفات الثابتة مباشرة من STATICFILES_DIRS (مجلد static/)
+# بدل ما يعتمد على STATIC_ROOT اللي محتاج collectstatic عشان يتملي.
+WHITENOISE_USE_FINDERS = True
 STATICFILES_DIRS = [BASE_DIR / 'static']
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
