@@ -57,7 +57,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # ---------------- DATABASE ----------------
-# Django auth/sessions على SQLite
+# auth/sessions/notifications بقوا على نفس SQL Server (مش SQLite، لأن
+# الملف المحلي كان بيضيع كل cold start على Vercel — serverless فيلسستم مؤقت).
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -65,7 +66,8 @@ DATABASES = {
     }
 }
 
-# SQL Server عن طريق pymssql مباشرة في الـ views
+# نفس بيانات SQL Server دي، بس عن طريق pymssql مباشرة في الـ views
+# (للـ stored procedures وجداول التقارير القديمة اللي مالهاش Django models)
 MSSQL_CONFIG = {
     'server':      os.getenv('DB_SERVER'),
     'database':    os.getenv('DB_NAME'),

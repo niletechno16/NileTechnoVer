@@ -14,7 +14,7 @@ sitemaps = {
 
 urlpatterns = [
     path('admin/',               admin.site.urls),
-    path('keep-alive/ping/',     ping),
+    path('health/',               ping),
     path('',                     include('apps.dashboard.urls')),
     path('reports/',             include('apps.reports.urls')),
     path('customers/',           include('apps.customers.urls')),

@@ -4,8 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import JsonResponse
-from .models import UserProfile, Notification
-from .notifications import notify_login, notify_password_changed
+from .models import UserProfile
 from db_connection import get_connection
 
 
@@ -140,8 +139,6 @@ def login_view(request):
                     user = authenticate(request, username=sql_id, password=login_password)
                     if user:
                         login(request, user)
-                        if user.profile.role != 'visitor':
-                            notify_login(user)
                         if is_first:
                             return redirect('change_password')
                         return redirect('home')
@@ -156,8 +153,6 @@ def login_view(request):
 
         if user:
             login(request, user)
-            if user.profile.role != 'visitor':
-                notify_login(user)
             if user.profile.is_first_login:
                 return redirect('change_password')
             return redirect('home')
@@ -213,9 +208,6 @@ def change_password(request):
             except Exception:
                 pass
 
-            # إشعار تغيير الباسورد
-            notify_password_changed(request.user)
-
             messages.success(request, 'تم تغيير كلمة المرور بنجاح')
             return redirect('home')
 
@@ -261,9 +253,6 @@ def profile(request):
                 except Exception:
                     pass
 
-                # إشعار تغيير الباسورد
-                notify_password_changed(request.user)
-
                 messages.success(request, 'تم تغيير كلمة المرور بنجاح ✅')
                 return redirect('profile')
 
@@ -288,50 +277,6 @@ def profile(request):
 
 # ---------------- NOTIFICATIONS API (محمية - server side فقط) ----------------
 @login_required
-def notifications_api(request):
-    """
-    GET  → جيب الإشعارات الجديدة (مش مقروءة) للـ user الحالي
-    POST → mark as read
-    البيانات بتيجي من السيرفر مباشرة — مش في HTML مشفر
-    """
-    if request.method == 'POST':
-        notif_id = request.POST.get('id')
-        if notif_id:
-            Notification.objects.filter(
-                id=notif_id, recipient=request.user
-            ).update(is_read=True)
-        else:
-            # mark all as read
-            Notification.objects.filter(
-                recipient=request.user, is_read=False
-            ).update(is_read=True)
-        return JsonResponse({'ok': True})
-
-    # GET → إرجع الإشعارات للـ user ده بس
-    notifs = Notification.objects.filter(
-        recipient=request.user
-    ).order_by('-created_at')[:30]
-
-    unread_count = Notification.objects.filter(
-        recipient=request.user, is_read=False
-    ).count()
-
-    data = []
-    for n in notifs:
-        data.append({
-            'id':         n.id,
-            'type':       n.notif_type,
-            'title':      n.title,
-            'body':       n.body,
-            'is_read':    n.is_read,
-            'agent_id':   n.agent_id,
-            'conv_id':    n.conv_id,
-            'created_at': n.created_at.strftime('%Y-%m-%d %H:%M'),
-        })
-
-    return JsonResponse({'notifications': data, 'unread_count': unread_count})
-
-
 # ---------------- MANAGE USERS ----------------
 @login_required
 def manage_users(request):
@@ -422,96 +367,6 @@ def change_role(request, user_id):
             messages.error(request, 'المستخدم غير موجود')
 
     return redirect('manage_users')
-
-
-# ---------------- CHECK RESOLVED (background poll) ----------------
-@login_required
-def check_resolved_api(request):
-    """
-    GET → يتحقق من تقارير الأيجنت الحالي ويولّد إشعارات resolved جديدة لو مش موجودة
-    بيتعمله poll من base.html كل 60 ثانية — مش مرتبط بصفحة معينة
-
-    المنطق:
-    - أول استدعاء في الـ session → نسجّل الـ baseline (conv_ids الموجودة حالياً) ومنعملش إشعارات
-    - الاستدعاءات اللي بعدها → بس لو conv_id جديد مش في الـ baseline ومش في الـ DB
-    """
-    from .notifications import notify_resolved
-    import datetime
-    import calendar as cal
-
-    user = request.user
-    try:
-        agent_id = str(user.profile.agent_id)
-    except Exception:
-        return JsonResponse({'ok': False})
-
-    # نجيب تقارير الشهر الحالي فقط
-    today      = datetime.date.today()
-    date_from  = today.replace(day=1).strftime('%Y-%m-%d')
-    last_day   = cal.monthrange(today.year, today.month)[1]
-    date_to    = today.replace(day=last_day).strftime('%Y-%m-%d')
-
-    session_key = f'resolved_baseline_{agent_id}'
-
-    new_count = 0
-    try:
-        conn   = get_connection()
-        cursor = conn.cursor(as_dict=True)
-        cursor.execute(
-            "EXEC Get_Reports_byA @FromDate = %s, @ToDate = %s",
-            (date_from, date_to)
-        )
-        raw = cursor.fetchall() or []
-        conn.close()
-
-        # جيب كل conv_ids المحلولة حالياً
-        current_resolved = set()
-        agent_name = None
-        names_map  = {}
-        for r in raw:
-            if str(r.get('agent_id', '')) != agent_id:
-                continue
-            if not r.get('classification', '').startswith('تم حل'):
-                continue
-            cid = str(r.get('conv_id', ''))
-            if cid:
-                current_resolved.add(cid)
-            if not agent_name:
-                agent_name = r.get('agent_name', agent_id)
-            names_map[cid] = r.get('agent_name', agent_id)
-
-        # أول استدعاء في الـ session → سجّل الـ baseline بس
-        if session_key not in request.session:
-            request.session[session_key] = list(current_resolved)
-            request.session.modified = True
-            return JsonResponse({'ok': True, 'new': 0, 'baseline': True})
-
-        baseline = set(request.session[session_key])
-
-        for conv_id in current_resolved:
-            # لو كان موجود في الـ baseline → قديم، تجاهل
-            if conv_id in baseline:
-                continue
-
-            # لو اتبعت إشعار قبل كده في الـ DB → تجاهل
-            already = Notification.objects.filter(
-                notif_type='resolved',
-                agent_id=agent_id,
-                body__contains=conv_id,
-            ).exists()
-
-            if not already:
-                notify_resolved(agent_id, names_map.get(conv_id, agent_id), conv_id)
-                new_count += 1
-
-        # حدّث الـ baseline بالجديد عشان المرة الجاية
-        request.session[session_key] = list(current_resolved)
-        request.session.modified = True
-
-    except Exception:
-        pass
-
-    return JsonResponse({'ok': True, 'new': new_count})
 
 
 # ---------------- LOGOUT ----------------

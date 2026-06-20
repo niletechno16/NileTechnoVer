@@ -5,7 +5,6 @@ from visitor_data import get_visitor_data
 from datetime import date
 from collections import defaultdict
 import calendar
-from apps.users.notifications import notify_resolved
 
 ARABIC_MONTHS = {
     1:'يناير',2:'فبراير',3:'مارس',4:'أبريل',5:'مايو',6:'يونيو',
@@ -189,27 +188,6 @@ def agent_detail(request, agent_id):
         agent_rows = [r for r in all_reports if str(r['agent_id']) == str(agent_id)]
         agent = {'agent_id': agent_id, 'agent_name': agent_rows[0]['agent_name']} if agent_rows else None
         reports = agent_rows
-
-        # ─── إشعار resolved ───
-        # لو في تقارير resolved جديدة لم يُرسل إشعار عنها بعد
-        try:
-            from apps.users.models import Notification
-            for r in agent_rows:
-                if r.get('classification', '').startswith('تم حل'):
-                    conv_id   = str(r.get('conv_id', ''))
-                    # نتحقق لو الإشعار ده مش اتبعتش من قبل
-                    already   = Notification.objects.filter(
-                        notif_type='resolved',
-                        agent_id=str(agent_id),
-                        body__contains=conv_id,
-                    ).exists() if conv_id else False
-
-                    if not already:
-                        agent_name = r.get('agent_name', str(agent_id))
-                        notify_resolved(agent_id, agent_name, conv_id)
-        except Exception:
-            pass
-        # ─────────────────────
 
         conn.close()
     except Exception:

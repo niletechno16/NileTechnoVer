@@ -1,6 +1,5 @@
 django
 pymssql
 whitenoise
-gunicorn
 djangorestframework
 python-dotenv
